@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -49,6 +50,7 @@ fun agendaProfesor() {
     val topAppBarHeight = 56.dp // Puedes ajustar este valor según tus necesidades
     val showListado = mutableStateOf(true)
     val showNuevoAlumno = mutableStateOf(false)
+    val showBorrarDatos = mutableStateOf(false)
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -76,10 +78,13 @@ fun agendaProfesor() {
             ) {
                 if (showListado.value) {
                     // Mostrar el listado de alumnos
-                    listaAlumnos(alumnos, showListado, showNuevoAlumno)
+                    listaAlumnos(alumnos, showListado, showNuevoAlumno, showBorrarDatos)
                 } else if (showNuevoAlumno.value) {
                     // Mostrar el formulario para añadir un nuevo alumno
                     nuevoAlumno(showNuevoAlumno, showListado, alumnos)
+                } else if (showBorrarDatos.value) {
+                    // Mostrar el formulario para añadir un nuevo alumno
+                    deleteDatos(alumnos, showListado, showBorrarDatos)
                 }
 
                 // Espaciador
@@ -96,7 +101,7 @@ data class Alumno(val nombre: String, val apellido: String)
 @SuppressLint("RememberReturnType")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun listaAlumnos(alumnos: MutableList<Alumno>, showListado: MutableState<Boolean>, showNuevoAlumno: MutableState<Boolean>) {
+fun listaAlumnos(alumnos: MutableList<Alumno>, showListado: MutableState<Boolean>, showNuevoAlumno: MutableState<Boolean>, showBorrarDatos: MutableState<Boolean>) {
     var busquedaText by remember { mutableStateOf("") }
 
     // Función para realizar la búsqueda
@@ -167,7 +172,10 @@ fun listaAlumnos(alumnos: MutableList<Alumno>, showListado: MutableState<Boolean
 
 
         ElevatedButton(
-            onClick = { },
+            onClick = {
+                showListado.value = false
+                showBorrarDatos.value = true
+            },
             modifier = Modifier
                 .weight(1f)
         ) {
@@ -301,5 +309,58 @@ fun nuevoAlumno(showNuevoAlumno: MutableState<Boolean>, showListado: MutableStat
             .padding(8.dp)
     ) {
         Text("Añadir Alumno")
+    }
+}
+
+@Composable
+fun deleteDatos(alumnos: MutableList<Alumno>, showListado: MutableState<Boolean>, showBorrarDatos: MutableState<Boolean>) {
+    // Elimina los datos de la lista de alumnos
+    Card(
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 6.dp
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp, horizontal = 8.dp)
+    ) {
+        Text(
+            text = "¿Estás seguro de que quieres borrar los alumnos y sus notas?",
+            modifier = Modifier
+                .padding(16.dp),
+            textAlign = TextAlign.Center,
+        )
+        Row (
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            ElevatedButton(onClick = {
+                alumnos.clear()
+                showBorrarDatos.value = false
+                showListado.value = true
+            }) {
+                Text(
+                    text = "Borrar Datos",
+                    modifier = Modifier
+                        .padding(16.dp),
+                    textAlign = TextAlign.Center,
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            ElevatedButton(onClick = {
+                showBorrarDatos.value = false
+                showListado.value = true
+            }) {
+                Text(
+                    text = "Cancelar",
+                    modifier = Modifier
+                        .padding(16.dp),
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
     }
 }
