@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,67 +29,26 @@ import com.example.agenda_profesor.ui.theme.Agenda_ProfesorTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Creamos un array de alumnos
-        val alumnos = listOf(
-            Alumno("Juan", "Pérez"),
-            Alumno("María", "Gómez"),
-            Alumno("Pedro", "García"),
-            Alumno("Ana", "Martínez"),
-            Alumno("Luis", "Sánchez"),
-            Alumno("Carmen", "López"),
-            Alumno("Javier", "González"),
-            Alumno("Laura", "Rodríguez"),
-            Alumno("Francisco", "Fernández"),
-            Alumno("Sara", "Gutiérrez"),
-            Alumno("Daniel", "Moreno"),
-            Alumno("Lucía", "Jiménez"),
-            Alumno("Carlos", "Pérez"),
-            Alumno("Paula", "Ruiz"),
-            Alumno("Antonio", "Hernández"),
-            Alumno("Alba", "Díaz"),
-            Alumno("Miguel", "Torres"),
-            Alumno("Elena", "Álvarez"),
-            Alumno("Manuel", "Romero"),
-            Alumno("Isabel", "Suárez"),
-            Alumno("Adrián", "Domínguez"),
-            Alumno("Julia", "Vázquez"),
-            Alumno("Rubén", "Molina"),
-            Alumno("Natalia", "Ortega"),
-            Alumno("Jorge", "Rubio"),
-            Alumno("Marina", "Marín"),
-            Alumno("Alberto", "Sanz"),
-            Alumno("Cristina", "Iglesias"),
-            Alumno("Diego", "Nuñez"),
-            Alumno("Andrea", "Medina"),
-            Alumno("Alejandro", "Garrido"),
-            Alumno("Sandra", "Cortés"),
-            Alumno("Raúl", "Castro"),
-            Alumno("Inés", "Lozano"),
-            Alumno("Mario", "Santos"),
-            Alumno("Celia", "Giménez"),
-            Alumno("Víctor", "Cruz"),
-            Alumno("Eva", "Ortiz"),
-            Alumno("Jesús", "Marquez"),
-            Alumno("Nerea", "Vidal"),
-            Alumno("Óscar", "Herrero"),
-            Alumno("Alicia", "Moya")
-        )
+
         super.onCreate(savedInstanceState)
         setContent {
             Agenda_ProfesorTheme {
                 // Llamada a la función AgendaProfesor
-                AgendaProfesor(alumnos)
+                agendaProfesor()
             }
         }
     }
 }
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "UnrememberedMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AgendaProfesor(alumnos: List<Alumno>) {
+fun agendaProfesor() {
+    // Creamos un array de alumnos
+    val alumnos = mutableListOf<Alumno>()
     val topAppBarHeight = 56.dp // Puedes ajustar este valor según tus necesidades
-
+    val showListado = mutableStateOf(true)
+    val showNuevoAlumno = mutableStateOf(false)
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -114,8 +74,13 @@ fun AgendaProfesor(alumnos: List<Alumno>) {
                     .padding(top = topAppBarHeight + 16.dp, start = 16.dp, end = 16.dp)
                     .align(Alignment.Center)
             ) {
-                // Llamada a la función para mostrar el listado de alumnos
-                ListaAlumnos(alumnos)
+                if (showListado.value) {
+                    // Mostrar el listado de alumnos
+                    listaAlumnos(alumnos, showListado, showNuevoAlumno)
+                } else if (showNuevoAlumno.value) {
+                    // Mostrar el formulario para añadir un nuevo alumno
+                    nuevoAlumno(showNuevoAlumno, showListado, alumnos)
+                }
 
                 // Espaciador
                 Spacer(modifier = Modifier.height(16.dp))
@@ -131,7 +96,7 @@ data class Alumno(val nombre: String, val apellido: String)
 @SuppressLint("RememberReturnType")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ListaAlumnos(alumnos: List<Alumno>) {
+fun listaAlumnos(alumnos: MutableList<Alumno>, showListado: MutableState<Boolean>, showNuevoAlumno: MutableState<Boolean>) {
     var busquedaText by remember { mutableStateOf("") }
 
     // Función para realizar la búsqueda
@@ -163,7 +128,10 @@ fun ListaAlumnos(alumnos: List<Alumno>) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         ElevatedButton(
-            onClick = { },
+            onClick = {
+                showListado.value = false
+                showNuevoAlumno.value = true
+            },
             modifier = Modifier
                 .weight(1f)
         ) {
@@ -281,5 +249,57 @@ fun ListaAlumnos(alumnos: List<Alumno>) {
                 }
             }
         }
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun nuevoAlumno(showNuevoAlumno: MutableState<Boolean>, showListado: MutableState<Boolean>, alumnos: MutableList<Alumno>) {
+    var nombre by remember { mutableStateOf("") }
+    var apellido by remember { mutableStateOf("") }
+
+    // Título de la lista
+    Text(
+        text = "NUEVO ALUMNO",
+        modifier = Modifier
+            .padding(8.dp)
+    )
+
+    // Campo de nombre
+    OutlinedTextField(
+        value = nombre,
+        onValueChange = { nombre = it },
+        label = { Text("Nombre") },
+        maxLines = 1,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    )
+
+    // Campo de apellido
+    OutlinedTextField(
+        value = apellido,
+        onValueChange = { apellido = it },
+        label = { Text("Apellido") },
+        maxLines = 1,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    )
+
+    // Botón para añadir el alumno
+    Button(
+        onClick = {
+            // Añadir el alumno a la lista
+            alumnos.add(Alumno(nombre, apellido))
+            showNuevoAlumno.value = false
+            showListado.value = true
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    ) {
+        Text("Añadir Alumno")
     }
 }
