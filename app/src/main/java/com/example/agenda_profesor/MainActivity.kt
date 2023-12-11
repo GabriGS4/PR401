@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -127,10 +128,27 @@ fun AgendaProfesor(alumnos: List<Alumno>) {
 // Modelo de datos para un alumno
 data class Alumno(val nombre: String, val apellido: String)
 
+@SuppressLint("RememberReturnType")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListaAlumnos(alumnos: List<Alumno>) {
     var busquedaText by remember { mutableStateOf("") }
+
+    // Función para realizar la búsqueda
+    fun buscarAlumnos(): List<Alumno> {
+        val busquedaLowerCase = busquedaText.lowercase()
+
+        return if (busquedaLowerCase.isBlank()) {
+            // Si la búsqueda está en blanco, mostrar todos los alumnos
+            alumnos
+        } else {
+            // Filtrar los alumnos por nombre o apellido que contenga la cadena de búsqueda
+            alumnos.filter {
+                it.nombre.lowercase().contains(busquedaLowerCase) || it.apellido.lowercase()
+                    .contains(busquedaLowerCase)
+            }
+        }
+    }
 
     // Título de la lista
     Text(
@@ -145,12 +163,20 @@ fun ListaAlumnos(alumnos: List<Alumno>) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         ElevatedButton(
-            onClick = { /* Lógica para crear un nuevo alumno */ },
+            onClick = { },
+            modifier = Modifier
+                .weight(1f)
         ) {
             Text("Nuevo Alumno")
         }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+
         ElevatedButton(
-            onClick = { /* Lógica para sacar la nota más alta */ },
+            onClick = { },
+            modifier = Modifier
+                .weight(1f)
         ) {
             Text("Sacar Nota más alta")
         }
@@ -163,14 +189,21 @@ fun ListaAlumnos(alumnos: List<Alumno>) {
     ) {
         ElevatedButton(
             onClick = { },
-
+            modifier = Modifier
+                .weight(1f)
         ) {
             Text("Calcular Nota Media")
         }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+
         ElevatedButton(
             onClick = { },
+            modifier = Modifier
+                .weight(1f)
         ) {
-            Text("Borrar Alumnos y notas")
+            Text("Borrar Datos")
         }
     }
 
@@ -181,50 +214,69 @@ fun ListaAlumnos(alumnos: List<Alumno>) {
             .padding(8.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        TextField(
+        OutlinedTextField(
             value = busquedaText,
             onValueChange = { busquedaText = it },
-            placeholder = { Text("Buscar por nombre y apellido") },
+            label = { Text("Buscar alumno") },
+            maxLines = 1,
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Person,
+                    contentDescription = "Icono de búsqueda"
+                )
+            },
             modifier = Modifier
                 .weight(1f)
-                .padding(end = 8.dp)
         )
+    }
 
-        Button(
-            onClick = { /* Lógica para realizar la búsqueda */ },
-        ) {
-            Text("Buscar")
+    // Lista de alumnos
+    val resultadosBusqueda by remember(busquedaText) {
+        derivedStateOf {
+            buscarAlumnos()
         }
     }
 
     // Lista de alumnos
     LazyColumn {
-        items(alumnos) { alumno ->
-            // Elemento de la lista para cada alumno
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp)
-            ) {
-                Column(
+        if (resultadosBusqueda.isEmpty()) {
+            // Mostrar un mensaje si no hay resultados
+            item {
+                Text(
+                    text = "No hay resultados",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(8.dp)
+                )
+            }
+        } else {
+            items(resultadosBusqueda) { alumno ->
+                // Elemento de la lista para cada alumno
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(16.dp)
                     ) {
-                        Spacer(modifier = Modifier.width(5.dp))
-                        // Mostramos la posicion del alumno en la lista, su nombre y apellido
-                        Text(
-                            text = "${alumnos.indexOf(alumno) + 1}. ${alumno.nombre} ${alumno.apellido}. Nota Media: 0.0",
+                        Row(
                             modifier = Modifier
-                                .weight(1f)
-                                .padding(8.dp)
-                        )
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Spacer(modifier = Modifier.width(5.dp))
+                            // Mostramos la posicion del alumno en la lista, su nombre y apellido
+                            Text(
+                                text = "${alumnos.indexOf(alumno) + 1}. ${alumno.nombre} ${alumno.apellido}. Nota Media: 0.0",
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(8.dp)
+                            )
+                        }
                     }
                 }
             }
