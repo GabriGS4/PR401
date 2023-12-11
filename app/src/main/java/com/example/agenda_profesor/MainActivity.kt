@@ -3,29 +3,37 @@ package com.example.agenda_profesor
 import android.annotation.SuppressLint
 import android.graphics.Color
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.text.isDigitsOnly
 import com.example.agenda_profesor.ui.theme.Agenda_ProfesorTheme
 
 class MainActivity : ComponentActivity() {
@@ -51,6 +59,8 @@ fun agendaProfesor() {
     val showListado = mutableStateOf(true)
     val showNuevoAlumno = mutableStateOf(false)
     val showBorrarDatos = mutableStateOf(false)
+    val showEditarAlumno = mutableStateOf(false)
+    val alumnoEditar = mutableStateOf(Alumno("", "", intArrayOf()))
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -78,13 +88,23 @@ fun agendaProfesor() {
             ) {
                 if (showListado.value) {
                     // Mostrar el listado de alumnos
-                    listaAlumnos(alumnos, showListado, showNuevoAlumno, showBorrarDatos)
+                    listaAlumnos(
+                        alumnos,
+                        showListado,
+                        showNuevoAlumno,
+                        showBorrarDatos,
+                        showEditarAlumno,
+                        alumnoEditar
+                    )
                 } else if (showNuevoAlumno.value) {
                     // Mostrar el formulario para añadir un nuevo alumno
                     nuevoAlumno(showNuevoAlumno, showListado, alumnos)
                 } else if (showBorrarDatos.value) {
                     // Mostrar el formulario para añadir un nuevo alumno
                     deleteDatos(alumnos, showListado, showBorrarDatos)
+                } else if (showEditarAlumno.value) {
+                    // Mostrar el formulario para editar un alumno
+                    editarAlumno(showListado, showEditarAlumno, alumnoEditar, alumnos)
                 }
 
                 // Espaciador
@@ -96,12 +116,19 @@ fun agendaProfesor() {
 }
 
 // Modelo de datos para un alumno
-data class Alumno(val nombre: String, val apellido: String)
+data class Alumno(val nombre: String, val apellido: String, var notas: IntArray)
 
 @SuppressLint("RememberReturnType")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun listaAlumnos(alumnos: MutableList<Alumno>, showListado: MutableState<Boolean>, showNuevoAlumno: MutableState<Boolean>, showBorrarDatos: MutableState<Boolean>) {
+fun listaAlumnos(
+    alumnos: MutableList<Alumno>,
+    showListado: MutableState<Boolean>,
+    showNuevoAlumno: MutableState<Boolean>,
+    showBorrarDatos: MutableState<Boolean>,
+    showEditarAlumno: MutableState<Boolean>,
+    alumnoEditar: MutableState<Alumno>
+) {
     var busquedaText by remember { mutableStateOf("") }
 
     // Función para realizar la búsqueda
@@ -229,6 +256,12 @@ fun listaAlumnos(alumnos: MutableList<Alumno>, showListado: MutableState<Boolean
             items(resultadosBusqueda) { alumno ->
                 // Elemento de la lista para cada alumno
                 Card(
+                    onClick = {
+                        // Mostrar el formulario para editar el alumno
+                        showListado.value = false
+                        showEditarAlumno.value = true
+                        alumnoEditar.value = alumno
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp)
@@ -263,7 +296,11 @@ fun listaAlumnos(alumnos: MutableList<Alumno>, showListado: MutableState<Boolean
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun nuevoAlumno(showNuevoAlumno: MutableState<Boolean>, showListado: MutableState<Boolean>, alumnos: MutableList<Alumno>) {
+fun nuevoAlumno(
+    showNuevoAlumno: MutableState<Boolean>,
+    showListado: MutableState<Boolean>,
+    alumnos: MutableList<Alumno>
+) {
     var nombre by remember { mutableStateOf("") }
     var apellido by remember { mutableStateOf("") }
 
@@ -300,7 +337,7 @@ fun nuevoAlumno(showNuevoAlumno: MutableState<Boolean>, showListado: MutableStat
     Button(
         onClick = {
             // Añadir el alumno a la lista
-            alumnos.add(Alumno(nombre, apellido))
+            alumnos.add(Alumno(nombre, apellido, intArrayOf()))
             showNuevoAlumno.value = false
             showListado.value = true
         },
@@ -312,8 +349,256 @@ fun nuevoAlumno(showNuevoAlumno: MutableState<Boolean>, showListado: MutableStat
     }
 }
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun deleteDatos(alumnos: MutableList<Alumno>, showListado: MutableState<Boolean>, showBorrarDatos: MutableState<Boolean>) {
+fun editarAlumno(
+    showListado: MutableState<Boolean>,
+    showEditarAlumno: MutableState<Boolean>,
+    alumno: MutableState<Alumno>,
+    alumnos: MutableList<Alumno>
+) {
+    var nombre by remember { mutableStateOf(alumno.value.nombre) }
+    var apellido by remember { mutableStateOf(alumno.value.apellido) }
+
+    var showNuevaNota by remember { mutableStateOf(false) }
+    var notaText by remember { mutableStateOf("") }
+
+    var notas by remember { mutableStateOf(alumno.value.notas) }
+    val context = LocalContext.current
+
+    if (showNuevaNota) {
+        AlertDialog(
+            title = {
+                Text(text = "Añadir Nota")
+            },
+            text = {
+                // Agregar un OutlinedTextField para ingresar números enteros
+
+                OutlinedTextField(
+                    value = notaText,
+                    onValueChange = {
+                        // Asegurarse de que solo sean caracteres numéricos
+                        if (it.isDigitsOnly()) {
+                            notaText = it
+                        }
+                    },
+                    label = { Text("Nota") },
+                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                    maxLines = 1,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                )
+            },
+            onDismissRequest = {
+                showNuevaNota = false
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        // Aquí puedes manejar la lógica para procesar el valor ingresado
+                        showNuevaNota = false
+                        // Comprobación de rango (1 a 10)
+                        val nuevaNota = notaText.toIntOrNull()
+                        if (nuevaNota in 1..10) {
+                            // Añadimos la nota al array de notas del alumno
+                            alumno.value.notas += nuevaNota!!
+                            notas = alumno.value.notas
+                        } else {
+                            // Mostramos un toast de error
+                            Toast.makeText(context, "Nota no válida", Toast.LENGTH_SHORT).show()
+                        }
+                        notaText = ""
+                    }
+                ) {
+                    Text("Añadir")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showNuevaNota = false
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            },
+
+            )
+
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = "EDITAR ALUMNO ${alumnos.indexOf(alumno.value) + 1}",
+            modifier = Modifier
+                .padding(8.dp)
+                .weight(2f),
+            textAlign = TextAlign.Center
+        )
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+
+        // Botón para cancelar la edición del alumno
+        OutlinedButton(
+            onClick = {
+                // Ocultar el formulario de edición y mostrar el listado
+                showEditarAlumno.value = false
+                showListado.value = true
+            },
+            modifier = Modifier
+                .padding(8.dp)
+        ) {
+            Text("Cancelar")
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Botón para editar el alumno
+        Button(
+            onClick = {
+                // Encontrar el índice del alumno en la lista
+                val index = alumnos.indexOf(alumno.value)
+
+                // Actualizar los valores del alumno en la lista con los nuevos valores
+                if (index != -1) {
+                    alumnos[index] = Alumno(nombre, apellido, alumno.value.notas)
+                }
+
+                // Ocultar el formulario de edición y mostrar el listado
+                showEditarAlumno.value = false
+                showListado.value = true
+            },
+            modifier = Modifier
+                .padding(8.dp)
+        ) {
+            Text("Editar Alumno")
+        }
+
+
+    }
+
+
+    // Campo de nombre
+    OutlinedTextField(
+        value = nombre,
+        onValueChange = { nombre = it },
+        label = { Text("Nombre") },
+        maxLines = 1,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    )
+
+    // Campo de apellido
+    OutlinedTextField(
+        value = apellido,
+        onValueChange = { apellido = it },
+        label = { Text("Apellido") },
+        maxLines = 1,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    )
+    Card(
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 6.dp
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    ) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "NOTAS",
+                modifier = Modifier
+                    .padding(16.dp),
+                textAlign = TextAlign.Center,
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            ElevatedButton(
+                onClick = {
+                    showNuevaNota = true
+                },
+                modifier = Modifier
+                    .weight(1f)
+            ) {
+                Text("Añadir Nota")
+            }
+
+        }
+        LazyColumn {
+            if (notas.isEmpty()) {
+                item {
+                    Text(
+                        text = "No hay resultados",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    )
+                }
+            } else {
+
+                items(notas.size) { index ->
+                    var nota = alumno.value.notas[index]
+                    // Elemento de la lista para cada alumno
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Spacer(modifier = Modifier.width(5.dp))
+                        // Mostramos la posición del alumno en la lista, su nombre y apellido
+                        Text(
+                            // Mostramos la posición de la nota en el array de notas y su valor
+                            text = "Nota ${index + 1}: $nota",
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(8.dp)
+                        )
+
+                        // Icono de papelera cliclable
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Eliminar nota",
+                            modifier = Modifier
+                                .padding(8.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun deleteDatos(
+    alumnos: MutableList<Alumno>,
+    showListado: MutableState<Boolean>,
+    showBorrarDatos: MutableState<Boolean>
+) {
     // Elimina los datos de la lista de alumnos
     Card(
         elevation = CardDefaults.cardElevation(
@@ -321,7 +606,7 @@ fun deleteDatos(alumnos: MutableList<Alumno>, showListado: MutableState<Boolean>
         ),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 16.dp, horizontal = 8.dp)
+            .padding(top = 150.dp)
     ) {
         Text(
             text = "¿Estás seguro de que quieres borrar los alumnos y sus notas?",
@@ -329,37 +614,36 @@ fun deleteDatos(alumnos: MutableList<Alumno>, showListado: MutableState<Boolean>
                 .padding(16.dp),
             textAlign = TextAlign.Center,
         )
-        Row (
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            ElevatedButton(onClick = {
-                alumnos.clear()
-                showBorrarDatos.value = false
-                showListado.value = true
-            }) {
-                Text(
-                    text = "Borrar Datos",
-                    modifier = Modifier
-                        .padding(16.dp),
-                    textAlign = TextAlign.Center,
-                )
+            ElevatedButton(
+                onClick = {
+                    alumnos.clear()
+                    showBorrarDatos.value = false
+                    showListado.value = true
+                },
+                modifier = Modifier
+                    .weight(1f)
+            ) {
+                Text("Borrar Datos")
             }
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            ElevatedButton(onClick = {
-                showBorrarDatos.value = false
-                showListado.value = true
-            }) {
-                Text(
-                    text = "Cancelar",
-                    modifier = Modifier
-                        .padding(16.dp),
-                    textAlign = TextAlign.Center,
-                )
+
+            ElevatedButton(
+                onClick = {
+                    showBorrarDatos.value = false
+                    showListado.value = true
+                },
+                modifier = Modifier
+                    .weight(1f)
+            ) {
+                Text("Cancelar")
             }
         }
     }
