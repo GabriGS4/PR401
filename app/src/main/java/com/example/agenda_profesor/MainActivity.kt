@@ -129,7 +129,95 @@ fun listaAlumnos(
     showEditarAlumno: MutableState<Boolean>,
     alumnoEditar: MutableState<Alumno>
 ) {
+    var showCalcularNotaMedia by remember { mutableStateOf(false) }
+    var showMostrarNotaMasAlta by remember { mutableStateOf(false) }
     var busquedaText by remember { mutableStateOf("") }
+
+    if (showCalcularNotaMedia) {
+        AlertDialog(
+            title = {
+                Text(text = "Nota Media Clase")
+            },
+            text = {
+                if (alumnos.isNotEmpty() && alumnos.any { it.notas.isNotEmpty() }) {
+                    // Filtra los alumnos que tienen notas
+                    val alumnosConNotas = alumnos.filter { it.notas.isNotEmpty() }
+
+                    // Filtra los alumnos que no tienen una media de 0 o 10
+                    val alumnosFiltrados = alumnosConNotas.filter { alumno ->
+                        val media = alumno.notas.average()
+                        media != 0.0 && media != 10.0
+                    }
+
+                    // Calcula la media de las notas de los alumnos filtrados
+                    val notaMediaClase = alumnosFiltrados.map { it.notas.average() }.average()
+
+                    Text(
+                        text = "La nota media de la clase es: $notaMediaClase",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    Text(
+                        text = "La nota media de la clase es: 0.0",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+
+            },
+            onDismissRequest = {
+                showCalcularNotaMedia = false
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showCalcularNotaMedia = false
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            },
+
+            )
+
+    }
+
+    if (showMostrarNotaMasAlta) {
+        AlertDialog(
+            title = {
+                Text(text = "Nota media más alta")
+            },
+            text = {
+                // Mostramos de quien es la nota más alta
+                val notaMasAlta = alumnos.maxByOrNull { it.notas.maxOrNull() ?: 0 }
+                if (notaMasAlta != null && notaMasAlta.notas.isNotEmpty()) {
+                    Text(
+                        text = "La nota media más alta es: ${notaMasAlta.notas.maxOrNull()} de ${notaMasAlta.nombre} ${notaMasAlta.apellido}",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    Text(
+                        text = "No hay notas",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            onDismissRequest = {
+                showMostrarNotaMasAlta = false
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showMostrarNotaMasAlta = false
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            },
+
+            )
+
+    }
 
     // Función para realizar la búsqueda
     fun buscarAlumnos(): List<Alumno> {
@@ -174,7 +262,9 @@ fun listaAlumnos(
 
 
         ElevatedButton(
-            onClick = { },
+            onClick = {
+                showMostrarNotaMasAlta = true;
+            },
             modifier = Modifier
                 .weight(1f)
         ) {
@@ -188,7 +278,9 @@ fun listaAlumnos(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         ElevatedButton(
-            onClick = { },
+            onClick = {
+                showCalcularNotaMedia = true;
+            },
             modifier = Modifier
                 .weight(1f)
         ) {
@@ -256,6 +348,9 @@ fun listaAlumnos(
             items(resultadosBusqueda) { alumno ->
                 // Elemento de la lista para cada alumno
                 Card(
+                    elevation = CardDefaults.cardElevation(
+                        defaultElevation = 6.dp
+                    ),
                     onClick = {
                         // Mostrar el formulario para editar el alumno
                         showListado.value = false
@@ -279,12 +374,21 @@ fun listaAlumnos(
                         ) {
                             Spacer(modifier = Modifier.width(5.dp))
                             // Mostramos la posicion del alumno en la lista, su nombre y apellido
-                            Text(
-                                text = "${alumnos.indexOf(alumno) + 1}. ${alumno.nombre} ${alumno.apellido}. Nota Media: ${alumno.notas.average()}",
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(8.dp)
-                            )
+                            if (alumno.notas.isNotEmpty()) {
+                                Text(
+                                    text = "${alumnos.indexOf(alumno) + 1}. ${alumno.nombre} ${alumno.apellido}. Nota Media: ${alumno.notas.average()}",
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(8.dp)
+                                )
+                            } else {
+                                Text(
+                                    text = "${alumnos.indexOf(alumno) + 1}. ${alumno.nombre} ${alumno.apellido}. Nota Media: 0.0",
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(8.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -371,8 +475,6 @@ fun nuevoAlumno(
         }
 
 
-
-
     }
 }
 
@@ -389,6 +491,7 @@ fun editarAlumno(
     var apellido by remember { mutableStateOf(alumno.value.apellido) }
 
     var showNuevaNota by remember { mutableStateOf(false) }
+    var showBorrarNotas by remember { mutableStateOf(false) }
     var notaText by remember { mutableStateOf("") }
 
     var notas by remember { mutableStateOf(alumno.value.notas) }
@@ -446,6 +549,41 @@ fun editarAlumno(
                 TextButton(
                     onClick = {
                         showNuevaNota = false
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            },
+
+            )
+
+    }
+
+    if (showBorrarNotas) {
+        AlertDialog(
+            title = {
+                Text(text = "¿Estás seguro de eliminar todas las notas?")
+            },
+            onDismissRequest = {
+                showBorrarNotas = false
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+
+                        showBorrarNotas = false
+                        // Eliminar todas las notas del array de notas del alumno
+                        alumno.value.notas = intArrayOf()
+                        notas = alumno.value.notas
+                    }
+                ) {
+                    Text("Borrar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showBorrarNotas = false
                     }
                 ) {
                     Text("Cancelar")
@@ -543,9 +681,7 @@ fun editarAlumno(
             .padding(8.dp)
     )
     Card(
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 6.dp
-        ),
+
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
@@ -565,6 +701,17 @@ fun editarAlumno(
                 textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.width(8.dp))
+            Button(
+                onClick = {
+                    showBorrarNotas = true
+                },
+                modifier = Modifier
+                    .weight(1f)
+            ) {
+                Text("Borrar Notas")
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+
             ElevatedButton(
                 onClick = {
                     showNuevaNota = true
@@ -576,6 +723,25 @@ fun editarAlumno(
             }
 
         }
+        // Mostrar la nota media del alumno si no está vacío el array de notas
+        if (notas.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "Nota Media: ${notas.average()}",
+                    modifier = Modifier
+                        .padding(16.dp),
+                    textAlign = TextAlign.Center,
+                )
+
+            }
+        }
+
         LazyColumn {
             if (notas.isEmpty()) {
                 item {
