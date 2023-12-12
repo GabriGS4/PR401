@@ -116,7 +116,7 @@ fun agendaProfesor() {
 }
 
 // Modelo de datos para un alumno
-data class Alumno(val nombre: String, val apellido: String, var notas: IntArray)
+data class Alumno(var nombre: String, var apellido: String, var notas: IntArray)
 
 @SuppressLint("RememberReturnType")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -280,7 +280,7 @@ fun listaAlumnos(
                             Spacer(modifier = Modifier.width(5.dp))
                             // Mostramos la posicion del alumno en la lista, su nombre y apellido
                             Text(
-                                text = "${alumnos.indexOf(alumno) + 1}. ${alumno.nombre} ${alumno.apellido}. Nota Media: 0.0",
+                                text = "${alumnos.indexOf(alumno) + 1}. ${alumno.nombre} ${alumno.apellido}. Nota Media: ${alumno.notas.average()}",
                                 modifier = Modifier
                                     .weight(1f)
                                     .padding(8.dp)
@@ -333,19 +333,46 @@ fun nuevoAlumno(
             .padding(8.dp)
     )
 
-    // Botón para añadir el alumno
-    Button(
-        onClick = {
-            // Añadir el alumno a la lista
-            alumnos.add(Alumno(nombre, apellido, intArrayOf()))
-            showNuevoAlumno.value = false
-            showListado.value = true
-        },
+
+
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .padding(8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text("Añadir Alumno")
+
+        OutlinedButton(
+            onClick = {
+                showNuevoAlumno.value = false
+                showListado.value = true
+            },
+            modifier = Modifier
+                .weight(1f)
+        ) {
+            Text("Cancelar")
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+
+        // Botón para añadir el alumno
+        Button(
+            onClick = {
+                // Añadir el alumno a la lista
+                alumnos.add(Alumno(nombre, apellido, intArrayOf()))
+                showNuevoAlumno.value = false
+                showListado.value = true
+            },
+            modifier = Modifier
+                .weight(1f)
+        ) {
+            Text("Añadir Alumno")
+        }
+
+
+
+
     }
 }
 
@@ -476,7 +503,8 @@ fun editarAlumno(
 
                 // Actualizar los valores del alumno en la lista con los nuevos valores
                 if (index != -1) {
-                    alumnos[index] = Alumno(nombre, apellido, alumno.value.notas)
+                    alumnos[index].nombre = nombre
+                    alumnos[index].apellido = apellido
                 }
 
                 // Ocultar el formulario de edición y mostrar el listado
@@ -584,7 +612,16 @@ fun editarAlumno(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Eliminar nota",
                             modifier = Modifier
-                                .padding(8.dp),
+                                .padding(8.dp)
+                                .clickable {
+                                    // Eliminar la nota del array de notas
+                                    alumno.value.notas = alumno.value.notas
+                                        .filterIndexed { i, _ ->
+                                            i != index
+                                        }
+                                        .toIntArray()
+                                    notas = alumno.value.notas
+                                }
                         )
                     }
                 }
